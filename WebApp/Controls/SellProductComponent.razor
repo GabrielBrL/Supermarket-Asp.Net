@@ -1,0 +1,80 @@
+﻿@inject IGetProductByIdUseCase _getProductById
+@inject ISellProductUseCase _sellProduct
+@if (_productToSell != null)
+{
+    <EditForm Model="_productToSell" OnValidSubmit="SellProduct">
+        <DataAnnotationsValidator></DataAnnotationsValidator>
+        <ValidationSummary></ValidationSummary>
+        <div class="form-group">
+            <label for="name">Product Name</label>
+            <input type="text" id="name" readonly class="form-control" value="@_productToSell.Name" />
+        </div>
+        <div class="form-group">
+            <label for="price">Price</label>
+            <input id="price" readonly value="@(string.Format("{0:c}",_productToSell.Price))" class="form-control" />
+        </div>
+        <div class="form-group">
+            <label for="qty">Quantity</label>
+            <InputNumber id="qty" @bind-Value="@_productToSell.Quantity" class="form-control"></InputNumber>
+        </div>
+        <br>
+        <button type="submit" class="btn btn-primary">Buy</button>
+    </EditForm>
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger mt-3">@errorMessage</div>
+    }
+
+}
+@code {
+    private Product _productToSell;
+    private string errorMessage;
+    [Parameter]
+    public string CashierName { get; set; }
+    [Parameter]
+    public Product SelectedProduct { get; set; }
+    [Parameter]
+    public EventCallback<Product> OnProductSold { get; set; }
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+        if (SelectedProduct != null)
+        {
+            _productToSell = new Product()
+                {
+                    ProductId = SelectedProduct.ProductId,
+                    CategoryId = SelectedProduct.CategoryId,
+                    Name = SelectedProduct.Name,
+                    Price = SelectedProduct.Price,
+                    Quantity = 0
+                };
+        }
+        else
+        {
+            _productToSell = null;
+        }
+    }
+    private void SellProduct()
+    {
+        if (string.IsNullOrWhiteSpace(CashierName))
+        {
+            errorMessage = "Cashier's name is missing, cannot sell product.";
+            return;
+        }        
+        var product = _getProductById.Execute(_productToSell.ProductId);
+        if (_productToSell.Quantity <= 0)
+        {
+            errorMessage = $"The quantity has to be greater than zero";
+            return;
+        }
+        if (product.Quantity >= _productToSell.Quantity)
+        {            
+            _sellProduct.Execute(CashierName, _productToSell.Quantity, product.ProductId);
+            OnProductSold.InvokeAsync(_productToSell);
+            errorMessage = string.Empty;
+            return;
+
+        }
+        errorMessage = $"{_productToSell.Name} only has {product.Quantity} left. It is not enough.";
+    }
+}

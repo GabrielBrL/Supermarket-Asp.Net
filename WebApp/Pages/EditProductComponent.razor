@@ -1,0 +1,69 @@
+﻿@page "/updateproduct/{productId}"
+@attribute [Authorize(Policy = "AdminOnly")]
+@inject IGetProductByIdUseCase _getProduct
+@inject IEditProductsUseCase _editProduct
+@inject IViewCategoriesUseCase _getAllCategories
+@inject NavigationManager navManager
+<h3>Edit Product</h3>
+
+@if (_product != null)
+{
+    <EditForm Model="_product" class="form-inline" OnValidSubmit="OnValidSubmit">
+        <DataAnnotationsValidator></DataAnnotationsValidator>
+        <ValidationSummary></ValidationSummary>
+        <div class="form-group">
+            <label for="category">Category</label>
+            <select class="form-select" id="category" @bind="_product.CategoryId">
+                <option selected>Selected</option>
+                @foreach (var category in categories)
+                {
+                    <option value="@category.CategoryId">@category.Name</option>
+                }
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="name">Name</label>
+            <InputText id="name" @bind-Value="_product.Name" autocomplete="off" class="form-control"></InputText>
+        </div>
+        <div class="form-group">
+            <label for="quantity">Quantity</label>
+            <InputNumber id="quantity" @bind-Value="_product.Quantity" class="form-control"></InputNumber>
+        </div>
+        <div class="form-group">
+            <label for="price">Price</label>
+            <InputNumber id="price" @bind-Value="_product.Price" @bind-Value:format="F2" class="form-control"></InputNumber>
+        </div>
+        <button type="submit" class="btn btn-primary mt-5">Save</button>
+        <button type="button" class="btn btn-danger mt-5" @onclick="OnCancel">Cancel</button>
+    </EditForm>
+}
+
+@code {
+    [Parameter]
+    public string productId { get; set; }
+    private Product _product;
+    private List<Category> categories;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        categories = _getAllCategories.Execute().ToList();
+    }
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+        if (Int32.TryParse(productId, out int pId))
+        {
+            _product = _getProduct.Execute(pId);
+        }
+    }
+    private void OnValidSubmit()
+    {
+        _editProduct.Execute(_product);
+        navManager.NavigateTo("/products");
+    }
+    private void OnCancel()
+    {
+        navManager.NavigateTo("/products");
+    }
+}

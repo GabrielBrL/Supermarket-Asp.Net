@@ -1,0 +1,70 @@
+﻿@page "/products"
+@attribute [Authorize(Policy = "AdminOnly")]
+@inject IViewProductsUseCase _products
+@inject IGetCategoryByIdUseCase _category
+@inject IDeleteProductsUseCase _deleteProduct
+@inject NavigationManager navManager
+<h3>Manage Products</h3>
+
+@if (products != null)
+{
+    <div>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Category</th>
+                    <th>Name</th>
+                    <th>Quantity</th>
+                    <th>Price</th>
+                    <th>Total</th>
+                    <th></th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var product in products)
+                {
+                    <tr>
+                        <td>@product.ProductId</td>
+                        <td>@_category.Execute(product.CategoryId.Value).Name</td>
+                        <td>@product.Name</td>
+                        <td>@product.Quantity</td>
+                        <td>@(Math.Round(product.Price.Value, 2))</td>
+                        <td>@(Math.Round(Math.Round(product.Price.Value,2) * product.Quantity.Value,2))</td>
+                        <td><button type="button" @onclick="(() => UpdateProduct(product.ProductId))" class="btn btn-link">Edit</button></td>
+                        <td><button type="button" @onclick="(() => DeleteProduct(product.ProductId))" class="btn btn-link">Delete</button></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        <button type="button" class="btn btn-primary" @onclick="OnClickAddCategory">Add Product</button>
+    </div>
+}
+
+@code {
+    public IEnumerable<Product> products;    
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        GetProducts();
+    }
+    private void GetProducts()
+    {
+        products = _products?.Execute();
+    }
+    private void UpdateProduct(int productId)
+    {
+        navManager.NavigateTo($"/updateproduct/{productId}");
+    }
+    private void DeleteProduct(int id)
+    {
+        _deleteProduct.Execute(id);
+        GetProducts();
+    }
+    private void OnClickAddCategory()
+    {
+        navManager.NavigateTo("/addproduct");
+    }
+}
